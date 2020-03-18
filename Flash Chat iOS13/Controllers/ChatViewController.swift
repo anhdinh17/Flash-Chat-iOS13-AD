@@ -18,7 +18,7 @@ class ChatViewController: UIViewController {
     let db = Firestore.firestore()
     
     // message array
-    var message: [Message] = []
+    var messages: [Message] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,7 +48,7 @@ class ChatViewController: UIViewController {
         db.collection(K.FStore.collectionName)
             .order(by:K.FStore.dateField) // sorting data by "data" on database
             .addSnapshotListener { (querySnapshot, error) in
-            self.message = [] // set array to be empty
+            self.messages = [] // set array to be empty
                         
             if let e = error{
                 print("There was error retrieving data from Firestore. \(e)")
@@ -67,7 +67,7 @@ class ChatViewController: UIViewController {
                         // castdown to String
                         if let messageSender = data[K.FStore.senderField] as? String, let messageBody = data[K.FStore.bodyField] as? String{
                             let newMessage = Message(sender: messageSender, body: messageBody) // create new instance of Message to store sender's email and content of the text
-                            self.message.append(newMessage) // append it to message array
+                            self.messages.append(newMessage) // append it to message array
                             
                             // loading data happened inside closure
                             // using DispatchQueue
@@ -75,6 +75,11 @@ class ChatViewController: UIViewController {
                                 // tap into tableView to trigger Delegate Data Source codes
                                 // to reload the cell
                                 self.tableView.reloadData()
+
+                                // codes to scroll down to last message:
+                                // create indexPath for the "at" parameter
+                                let indexPath = IndexPath(row: self.messages.count-1,section: 0)
+                                self.tableView.scrollToRow(at: indexPath, at: .top, animated: true)
                             }
                         }
                     }
@@ -98,6 +103,12 @@ class ChatViewController: UIViewController {
                     print("There was an issue saving data to Firestore, \(e)")
                 } else{
                     print("Successfully save data")
+                    
+                    // cleat text field after hitting send button
+                    DispatchQueue.main.async {
+                        self.messageTextfield.text = ""
+                    }
+                    
                 }
             }
         }
@@ -119,23 +130,41 @@ class ChatViewController: UIViewController {
 // protocol Delegate for data source that tells how many rows of the tableView
 // this one prints out message.
 extension ChatViewController: UITableViewDataSource {
-    // this func tells how many rows table view has
+    // this func tells how many rows(cells) table view has
     // in this case, it equals to length of message array
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return message.count // return number of rows
+        return messages.count // return number of rows(cells)
     }
     
-    // this func returns a reusable cell for each row of the table view
-    // indexPath.row is the position of each row starting from 0
+    // this func is called as many times as the cells that the above func returns
+    // and this func decides how to display each cell
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let message = messages[indexPath.row] // instance of each element object
+        
+        // set the cell to be like UILabel,UIButton, etg.
         let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifier, for: indexPath) as! MessageCell
         // as! because "dequeueReusableCell" returns a UITableView, but now we're using MessageCell.xib which inherits from UITableView class so we need to cast it down to MessageCell
         
         // print the content of each cell from message array
-        cell.label.text = message[indexPath.row].body
+        cell.label.text = message.body
+        
+        // check if the sender of the message equals the current user who is signed in
+        if message.sender == Auth.auth().currentUser?.email{
+            cell.leftImageView.isHidden = true // hide the "you"
+            cell.rightImageView.isHidden = false // make sure the "me" is on
+            
+            // set color for the bubble and text
+            cell.messageBubble.backgroundColor = UIColor(named: K.BrandColors.lightPurple)
+            cell.label.textColor = UIColor(named: K.BrandColors.purple)
+        }
+        else{ // if the sender is not the current signed in
+            cell.leftImageView.isHidden = false
+            cell.rightImageView.isHidden = true
+            cell.messageBubble.backgroundColor = UIColor(named: K.BrandColors.purple)
+            cell.label.textColor = UIColor(named: K.BrandColors.lightPurple)
+        }
         
         return cell
     }
-    
     
 }

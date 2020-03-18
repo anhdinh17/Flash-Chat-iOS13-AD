@@ -12,6 +12,19 @@ class WelcomeViewController: UIViewController {
 
     @IBOutlet weak var titleLabel: UILabel!
     
+    // hide the navigation bar when app first loads
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated) // habit
+        navigationController?.isNavigationBarHidden = true
+    }
+    
+    // when we go to next screen, the welcome page will disappear,
+    // and we set the navigationbar back on again
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated) // habit
+        navigationController?.isNavigationBarHidden = false
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
