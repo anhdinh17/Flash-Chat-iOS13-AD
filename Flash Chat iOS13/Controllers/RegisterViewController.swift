@@ -19,6 +19,8 @@ class RegisterViewController: UIViewController {
         // .text is String optional, optional binding both email and password on same line
         // to make sure that neither of them is nil
         if let email = emailTextfield.text, let password = passwordTextfield.text{
+            // Codes from Firabase to register with email and password
+            // this registration is saved on Firebase
             Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
                 if let e = error{ // if there's error
                     print(e.localizedDescription)

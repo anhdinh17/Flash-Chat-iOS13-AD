@@ -43,24 +43,24 @@ class ChatViewController: UIViewController {
         
         // tap into collection and document
         // getDocuments is to retrieve data from documents (codes from Firestore)
-        // we changed from getDocuments() to addSnapshotListener so that every time
+        // we changed from getDocuments() to addSnapshotListener to detect any updates, so that every time
         // we add something to database,it triggers all the codes inside closure, it will get data from document, reload the TableView
         db.collection(K.FStore.collectionName)
             .order(by:K.FStore.dateField) // sorting data by "data" on database
             .addSnapshotListener { (querySnapshot, error) in
-            self.messages = [] // set array to be empty
+            self.messages = [] // set array to be empty - IMPORTANT
                         
             if let e = error{
                 print("There was error retrieving data from Firestore. \(e)")
             } else{
                 if let snapshotDocument = querySnapshot?.documents{
                     
-                    // querySnapshot.documents = array of QueryDocumentSnapshot
+                    // querySnapshot.documents = array of QueryDocumentSnapshot / array of documents
                     // that contains data read from a document
-                    for doc in snapshotDocument{ // each doc is one object of QueryDocumentSnapshot, one doucument in firebase
-                        
+                    for doc in snapshotDocument{ // each doc is one object of QueryDocumentSnapshot
+                                                // each doc is 1 document
                         let data = doc.data()
-                        // .data() is the a dicitionary that contains "sender" and 'body' of the message, that makes data now a dictionary
+                        // .data() is the dicitionary that contains "sender",'body',"time" of the message
                         print(data)
                         print(doc)
                         // get the key-value from the "data" dictionary
@@ -93,7 +93,8 @@ class ChatViewController: UIViewController {
         // when users hit send button, we store texts from Text field into messageBody,
         // we also store email of sender if they are signed in into messageSender
         // the Auth.auth().currentUser?.email is from Firestore under iOS/Manage User
-        if let messageBody = messageTextfield.text, let messageSender = Auth.auth().currentUser?.email{
+        if let messageBody = messageTextfield.text, let messageSender = Auth.auth().currentUser?.email {
+            // create a document with a dictionary of 3 things: sender's email, text, time the text created under seconds
             db.collection(K.FStore.collectionName).addDocument(data: [
                 K.FStore.senderField: messageSender,
                 K.FStore.bodyField: messageBody,
@@ -104,7 +105,7 @@ class ChatViewController: UIViewController {
                 } else{
                     print("Successfully save data")
                     
-                    // cleat text field after hitting send button
+                    // clear text field after hitting send button
                     DispatchQueue.main.async {
                         self.messageTextfield.text = ""
                     }
@@ -114,6 +115,7 @@ class ChatViewController: UIViewController {
         }
     }
     
+    // LOGOUT to root view
     @IBAction func logOutPressed(_ sender: UIBarButtonItem) {
         // Codes to log out from Firebase
         do {
@@ -127,6 +129,7 @@ class ChatViewController: UIViewController {
     
 }
 
+// MARK: - DataSource Delegate
 // protocol Delegate for data source that tells how many rows of the tableView
 // this one prints out message.
 extension ChatViewController: UITableViewDataSource {
@@ -139,9 +142,10 @@ extension ChatViewController: UITableViewDataSource {
     // this func is called as many times as the cells that the above func returns
     // and this func decides how to display each cell
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let message = messages[indexPath.row] // instance of each element object
+        let message = messages[indexPath.row] // instance of Message object
         
         // set the cell to be like UILabel,UIButton, etg.
+        // the "withIdentifier" is the identifier we set for the .xib file
         let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifier, for: indexPath) as! MessageCell
         // as! because "dequeueReusableCell" returns a UITableView, but now we're using MessageCell.xib which inherits from UITableView class so we need to cast it down to MessageCell
         
@@ -149,6 +153,7 @@ extension ChatViewController: UITableViewDataSource {
         cell.label.text = message.body
         
         // check if the sender of the message equals the current user who is signed in
+        // Auth.auth().currentUser?.email is email of current signed-in user
         if message.sender == Auth.auth().currentUser?.email{
             cell.leftImageView.isHidden = true // hide the "you"
             cell.rightImageView.isHidden = false // make sure the "me" is on
@@ -164,6 +169,7 @@ extension ChatViewController: UITableViewDataSource {
             cell.label.textColor = UIColor(named: K.BrandColors.lightPurple)
         }
         
+        // return this cell with the text inside, color, You or Me to put in the list of cells of func above
         return cell
     }
     
